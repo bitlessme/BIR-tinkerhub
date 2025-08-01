@@ -11,15 +11,28 @@ const HeroSection = () => {
       </div>
 
       <div className="container mx-auto px-6 py-20 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="flex flex-col items-center text-center space-y-12">
+          {/* Hero Image */}
+          <div className="flex justify-center animate-fade-in-scale">
+            <div className="relative">
+              <img 
+                src={heroStatue} 
+                alt="Classical statue representing ambitious builders"
+                className="w-full max-w-md h-auto object-cover rounded-2xl shadow-elegant"
+              />
+              <div className="absolute -top-4 -right-4 w-8 h-8 bg-accent rounded-full animate-gentle-bounce"></div>
+              <div className="absolute -bottom-2 -left-2 w-6 h-6 bg-warm-beige rounded-full animate-float"></div>
+            </div>
+          </div>
+
           {/* Content */}
-          <div className="space-y-8 animate-fade-in-up">
+          <div className="space-y-8 animate-fade-in-up max-w-4xl">
             {/* Logo */}
-            <div className="flex items-center space-x-3 mb-8">
+            <div className="flex items-center justify-center space-x-3 mb-8">
               <div className="w-10 h-10 bg-charcoal rounded-full flex items-center justify-center">
                 <span className="text-warm-cream text-lg font-bold">R</span>
               </div>
-              <span className="text-2xl font-serif text-charcoal">the residency</span>
+              <span className="text-2xl font-serif text-charcoal">builder in residence</span>
             </div>
 
             {/* Main Headline */}
@@ -38,19 +51,6 @@ const HeroSection = () => {
               <Button variant="elegant" size="lg" className="font-serif text-lg px-12">
                 tune in
               </Button>
-            </div>
-          </div>
-
-          {/* Hero Image */}
-          <div className="flex justify-center animate-fade-in-scale">
-            <div className="relative">
-              <img 
-                src={heroStatue} 
-                alt="Classical statue representing ambitious builders"
-                className="w-full max-w-lg h-auto object-cover rounded-2xl shadow-elegant"
-              />
-              <div className="absolute -top-4 -right-4 w-8 h-8 bg-accent rounded-full animate-gentle-bounce"></div>
-              <div className="absolute -bottom-2 -left-2 w-6 h-6 bg-warm-beige rounded-full animate-float"></div>
             </div>
           </div>
         </div>

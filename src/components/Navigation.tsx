@@ -10,7 +10,7 @@ const Navigation = () => {
             <div className="w-8 h-8 bg-charcoal rounded-full flex items-center justify-center">
               <span className="text-warm-cream text-sm font-bold">R</span>
             </div>
-            <span className="text-xl font-serif text-charcoal">the residency</span>
+            <span className="text-xl font-serif text-charcoal">builder in residence</span>
           </div>
 
           {/* Navigation Links */}
