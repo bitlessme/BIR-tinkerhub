@@ -1,14 +1,21 @@
-import Navigation from "@/components/Navigation";
+import { NavBar } from "@/components/mini-navbar";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
 import ExpectSection from "@/components/ExpectSection";
 import CommunitySection from "@/components/CommunitySection";
 import Footer from "@/components/Footer";
+import { Home, User, Briefcase, FileText } from "lucide-react";
 
 const Index = () => {
+  const navItems = [
+    { name: 'Home', url: '#', icon: Home },
+    { name: 'About', url: '#', icon: User },
+    { name: 'Projects', url: '#', icon: Briefcase },
+    { name: 'Resume', url: '#', icon: FileText }
+  ]
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <NavBar items={navItems} />
       <HeroSection />
       <AboutSection />
       <ExpectSection />

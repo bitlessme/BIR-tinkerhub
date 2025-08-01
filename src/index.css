@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Clash Display Font */
+@font-face {
+  font-family: 'ClashDisplay-Variable';
+  src: url('/Fonts/WEB/fonts/ClashDisplay-Variable.woff2') format('woff2'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Variable.woff') format('woff'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Variable.ttf') format('truetype');
+  font-weight: 200 700;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ClashDisplay';
+  src: url('/Fonts/WEB/fonts/ClashDisplay-Regular.woff2') format('woff2'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Regular.woff') format('woff'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ClashDisplay';
+  src: url('/Fonts/WEB/fonts/ClashDisplay-Medium.woff2') format('woff2'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Medium.woff') format('woff'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ClashDisplay';
+  src: url('/Fonts/WEB/fonts/ClashDisplay-Bold.woff2') format('woff2'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Bold.woff') format('woff'),
+       url('/Fonts/WEB/fonts/ClashDisplay-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -133,10 +174,19 @@ All colors MUST be HSL.
   /* Typography improvements */
   h1, h2, h3, h4, h5, h6 {
     @apply font-normal tracking-tight;
+    font-family: 'ClashDisplay', sans-serif;
   }
   
   .font-serif {
     font-family: 'Playfair Display', Georgia, serif;
+  }
+  
+  .font-clash {
+    font-family: 'ClashDisplay', sans-serif;
+  }
+  
+  .font-clash-variable {
+    font-family: 'ClashDisplay-Variable', sans-serif;
   }
   
   /* Smooth scrolling */

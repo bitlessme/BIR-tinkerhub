@@ -115,7 +115,9 @@ export default {
 			},
 			fontFamily: {
 				'serif': ['Playfair Display', 'Georgia', 'serif'],
-				'sans': ['Inter', 'system-ui', 'sans-serif']
+				'sans': ['Inter', 'system-ui', 'sans-serif'],
+				'clash': ['ClashDisplay', 'sans-serif'],
+				'clash-variable': ['ClashDisplay-Variable', 'sans-serif']
 			},
 			backgroundImage: {
 				'gradient-hero': 'var(--gradient-hero)',

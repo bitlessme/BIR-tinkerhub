@@ -10,45 +10,35 @@ const HeroSection = () => {
         <div className="absolute bottom-20 right-10 w-48 h-48 bg-accent rounded-full blur-3xl animate-gentle-bounce"></div>
       </div>
 
-      <div className="container mx-auto px-6 py-20 relative z-10">
-        <div className="flex flex-col items-center text-center space-y-12">
-          {/* Hero Image */}
-          <div className="flex justify-center animate-fade-in-scale">
-            <div className="relative">
-              <img 
-                src={heroStatue} 
-                alt="Classical statue representing ambitious builders"
-                className="w-full max-w-md h-auto object-cover rounded-2xl shadow-elegant"
-              />
-              <div className="absolute -top-4 -right-4 w-8 h-8 bg-accent rounded-full animate-gentle-bounce"></div>
-              <div className="absolute -bottom-2 -left-2 w-6 h-6 bg-warm-beige rounded-full animate-float"></div>
-            </div>
-          </div>
-
+      <div className="container mx-auto px-6 py-20 mt-20 relative z-10">
+        <div className="flex flex-col items-center text-center ">
+          <img src={"/buildertext.svg"} alt="Builder in Residence" className="-mb-16 z-10" />
+          <span className="text-9xl font-clash font-bold text-charcoal">
+            -In-Residence
+          </span>
           {/* Content */}
           <div className="space-y-8 animate-fade-in-up max-w-4xl">
             {/* Logo */}
-            <div className="flex items-center justify-center space-x-3 mb-8">
-              <div className="w-10 h-10 bg-charcoal rounded-full flex items-center justify-center">
-                <span className="text-warm-cream text-lg font-bold">R</span>
-              </div>
-              <span className="text-2xl font-serif text-charcoal">builder in residence</span>
-            </div>
+      
 
             {/* Main Headline */}
             <div className="space-y-4">
               <h1 className="text-5xl lg:text-7xl leading-tight text-charcoal">
-                <span className="font-serif italic">live and grow</span>{" "}
+                <span className="font-serif italic">build and grow</span>{" "}
                 <span className="font-normal">with</span>
               </h1>
               <h1 className="text-5xl lg:text-7xl font-normal text-charcoal">
-                ambitious builders
+                aspiring builders
               </h1>
             </div>
 
             {/* CTA */}
             <div className="pt-8">
-              <Button variant="elegant" size="lg" className="font-serif text-lg px-12">
+              <Button
+                variant="elegant"
+                size="lg"
+                className="font-serif text-lg px-12"
+              >
                 tune in
               </Button>
             </div>
