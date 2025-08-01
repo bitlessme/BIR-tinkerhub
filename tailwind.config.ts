@@ -52,6 +52,11 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				/* Custom theme colors */
+				'warm-cream': 'hsl(var(--warm-cream))',
+				'warm-beige': 'hsl(var(--warm-beige))',
+				'charcoal': 'hsl(var(--charcoal))',
+				'soft-gray': 'hsl(var(--soft-gray))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -84,11 +89,41 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'float': {
+					'0%, 100%': {
+						transform: 'translateY(0px)'
+					},
+					'50%': {
+						transform: 'translateY(-10px)'
+					}
+				},
+				'gentle-bounce': {
+					'0%, 100%': {
+						transform: 'translateY(0px)'
+					},
+					'50%': {
+						transform: 'translateY(-5px)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'float': 'float 6s ease-in-out infinite',
+				'gentle-bounce': 'gentle-bounce 3s ease-in-out infinite'
+			},
+			fontFamily: {
+				'serif': ['Playfair Display', 'Georgia', 'serif'],
+				'sans': ['Inter', 'system-ui', 'sans-serif']
+			},
+			backgroundImage: {
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-subtle': 'var(--gradient-subtle)'
+			},
+			boxShadow: {
+				'elegant': 'var(--shadow-elegant)',
+				'soft': 'var(--shadow-soft)'
 			}
 		}
 	},
