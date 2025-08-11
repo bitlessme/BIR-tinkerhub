@@ -5,6 +5,8 @@ import ExpectSection from "@/components/ExpectSection";
 import CommunitySection from "@/components/CommunitySection";
 import Footer from "@/components/Footer";
 import { Home, User, Briefcase, FileText } from "lucide-react";
+import HorizontalEventTimelineCarousel from "@/components/timeline";
+import { TimelineTabs } from "@/components/tabs";
 
 const Index = () => {
   const navItems = [
@@ -18,6 +20,7 @@ const Index = () => {
       <NavBar items={navItems} />
       <HeroSection />
       <AboutSection />
+      <TimelineTabs />
       <ExpectSection />
       <CommunitySection />
       <Footer />
