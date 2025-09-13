@@ -1,359 +1,425 @@
 "use client";
+import React, { useMemo } from "react";
 
-import React, { useState, useEffect, useRef } from "react";
-import {
-  motion,
-  useTransform,
-  AnimatePresence,
-  useMotionValue,
-  useSpring,
-} from "framer-motion";
-import { cn } from "@/lib/utils";
-
-interface Builder {
-  id: number;
-  name: string;
-  image: string;
-  type: "builder" | "mentor";
-  details: {
-    role: string;
-    experience: string;
-    skills: string[];
-    location: string;
+/** Seeded PRNG for deterministic layouts */
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-const generateBuilders = (): Builder[] => {
-  const builderRoles = [
-    "Full Stack Developer",
-    "Frontend Developer",
-    "Backend Developer",
-    "Mobile Developer",
-    "DevOps Engineer",
-    "UI/UX Designer",
-  ];
-  const mentorRoles = [
-    "Tech Lead",
-    "CTO",
-    "Engineering Manager",
-    "Senior Architect",
-    "Product Manager",
-    "VP Engineering",
-  ];
-  const skills = [
-    "React",
-    "Node.js",
-    "Python",
-    "TypeScript",
-    "AWS",
-    "Docker",
-    "Kubernetes",
-    "GraphQL",
-    "MongoDB",
-    "PostgreSQL",
-  ];
-  const locations = [
-    "San Francisco",
-    "New York",
-    "London",
-    "Berlin",
-    "Tokyo",
-    "Sydney",
-    "Toronto",
-    "Amsterdam",
-  ];
-  const experiences = [
-    "2-3 years",
-    "3-5 years",
-    "5-8 years",
-    "8+ years",
-    "10+ years",
-  ];
+/** Helpers */
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.max(lo, Math.min(hi, v));
 
-  const builders: Builder[] = [];
+type NodeType = "mentor" | "mentee";
+type Node = {
+  id: number;
+  type: NodeType;
+  name: string;
+  img: string;
+  x: number; // % of container width
+  y: number; // % of container height
+  r: number; // effective radius in %
+};
 
-  for (let i = 1; i <= 60; i++) {
-    const isBuilder = Math.random() > 0.3;
-    const roles = isBuilder ? builderRoles : mentorRoles;
+/** Build a dense, non-overlapping layout in RECTANGULAR % space */
+function buildLayout(opts: {
+  mentorCount: number;
+  menteeCount: number;
+  seed?: number;
+  margin?: number; // % margin from edges
+  mentorR?: number; // mentor radius in %
+  menteeR?: number; // mentee radius in %
+  padding?: number; // extra gap in %
+  iterations?: number; // relaxation steps
+}) {
+  const {
+    mentorCount,
+    menteeCount,
+    seed = 12345,
+    margin = 3,
+    mentorR = 3.6, // ~good for 84–100px visuals on common viewports
+    menteeR = 2.2, // ~good for 44–62px visuals
+    padding = 0.6, // extra spacing between nodes (in %)
+    iterations = 45,
+  } = opts;
 
-    builders.push({
-      id: i,
-      name: `${
-        [
-          "Alex",
-          "Jordan",
-          "Casey",
-          "Morgan",
-          "Riley",
-          "Avery",
-          "Quinn",
-          "Sage",
-        ][Math.floor(Math.random() * 8)]
-      } ${
-        [
-          "Smith",
-          "Johnson",
-          "Brown",
-          "Davis",
-          "Wilson",
-          "Miller",
-          "Moore",
-          "Taylor",
-        ][Math.floor(Math.random() * 8)]
-      }`,
-      image: `https://images.unsplash.com/photo-${
-        1500000000000 + Math.floor(Math.random() * 100000000)
-      }?w=100&h=100&fit=crop&crop=face`,
-      type: isBuilder ? "builder" : "mentor",
-      details: {
-        role: roles[Math.floor(Math.random() * roles.length)],
-        experience: experiences[Math.floor(Math.random() * experiences.length)],
-        skills: skills
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 3 + Math.floor(Math.random() * 3)),
-        location: locations[Math.floor(Math.random() * locations.length)],
-      },
+  const rnd = mulberry32(seed);
+  const total = mentorCount + menteeCount;
+
+  const nodes: Node[] = [];
+  const safe = (rad: number) => margin + rad;
+
+  // 1) Grid-based collision detection for guaranteed no overlaps
+  const φ = Math.PI * (3 - Math.sqrt(5)); // golden angle
+  const gridSize = 0.8; // Ultra-small grid for maximum density
+  const grid: Set<string> = new Set();
+
+  const getGridKey = (x: number, y: number) => {
+    const gx = Math.floor(x / gridSize);
+    const gy = Math.floor(y / gridSize);
+    return `${gx},${gy}`;
+  };
+
+  const getGridCells = (x: number, y: number, rad: number) => {
+    const cells: string[] = [];
+    const cellRadius = Math.ceil((rad + padding) / gridSize) + 1; // Extra cells for safety
+    const centerX = Math.floor(x / gridSize);
+    const centerY = Math.floor(y / gridSize);
+
+    for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+      for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+        cells.push(`${centerX + dx},${centerY + dy}`);
+      }
+    }
+    return cells;
+  };
+
+  const isPositionValid = (x: number, y: number, rad: number) => {
+    // Check bounds
+    const lo = safe(rad);
+    const hi = 100 - safe(rad);
+    if (x < lo || x > hi || y < lo || y > hi) return false;
+
+    // Check grid cells for overlaps
+    const cells = getGridCells(x, y, rad);
+    for (const cell of cells) {
+      if (grid.has(cell)) return false;
+    }
+    return true;
+  };
+
+  const markPosition = (x: number, y: number, rad: number) => {
+    const cells = getGridCells(x, y, rad);
+    for (const cell of cells) {
+      grid.add(cell);
+    }
+  };
+
+  // Create shuffled order for intermixing
+  const order = Array.from({ length: total }, (_, i) => i);
+  order.sort(() => rnd() - 0.5);
+
+  for (let k = 0; k < total; k++) {
+    const i = order[k];
+    const type: NodeType = k < mentorCount ? "mentor" : "mentee";
+    const rad = type === "mentor" ? mentorR : menteeR;
+
+    let x, y;
+    let valid = false;
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    // Try golden spiral first
+    if (k < total * 0.9) {
+      const t = (k + 0.5) / total;
+      const r = Math.sqrt(t) * 49; // Maximum spiral radius for full coverage
+      const θ = k * φ;
+
+      x = 50 + r * Math.cos(θ);
+      y = 50 + r * Math.sin(θ);
+
+      // Add minimal jitter
+      x += (rnd() - 0.5) * 1.5;
+      y += (rnd() - 0.5) * 1.5;
+
+      valid = isPositionValid(x, y, rad);
+    }
+
+    // If spiral fails, try random positions with many attempts
+    if (!valid) {
+      for (let j = 0; j < maxAttempts * 4; j++) {
+        const lo = safe(rad);
+        const hi = 100 - safe(rad);
+        x = lo + rnd() * (hi - lo);
+        y = lo + rnd() * (hi - lo);
+
+        if (isPositionValid(x, y, rad)) {
+          valid = true;
+          break;
+        }
+        attempts++;
+      }
+    }
+
+    if (valid) {
+      // Clamp to safe bounds
+      const lo = safe(rad);
+      const hi = 100 - safe(rad);
+      x = clamp(x, lo, hi);
+      y = clamp(y, lo, hi);
+
+      const imgId =
+        type === "mentor" ? 1 + ((k * 7) % 70) : 10 + ((k * 5) % 70);
+
+      nodes.push({
+        id: k + 1,
+        type,
+        name: `${type === "mentor" ? "Mentor" : "Mentee"} ${k + 1}`,
+        img: `https://i.pravatar.cc/${
+          type === "mentor" ? 160 : 100
+        }?img=${imgId}`,
+        x,
+        y,
+        r: rad,
+      });
+
+      // Mark this position as used in grid
+      markPosition(x, y, rad);
+    }
+  }
+
+  // 2) Relaxation (repulsion) on the rectangle (no recentring)
+  for (let it = 0; it < iterations; it++) {
+    let moved = 0;
+
+    // pairwise separation
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const aN = nodes[i];
+        const bN = nodes[j];
+        const dx = bN.x - aN.x;
+        const dy = bN.y - aN.y;
+        const dist = Math.hypot(dx, dy) || 0.0001;
+
+        const minDist = aN.r + bN.r + padding;
+        if (dist < minDist) {
+          const overlap = (minDist - dist) * 1.0; // 100% overlap resolution
+          const ux = dx / dist;
+          const uy = dy / dist;
+
+          const aW = aN.type === "mentor" ? 1.05 : 1.0; // Very minimal weight difference
+          const bW = bN.type === "mentor" ? 1.05 : 1.0;
+          const tot = aW + bW;
+
+          aN.x -= overlap * ux * (bW / tot);
+          aN.y -= overlap * uy * (bW / tot);
+          bN.x += overlap * ux * (aW / tot);
+          bN.y += overlap * uy * (aW / tot);
+
+          // clamp after move
+          const aLo = safe(aN.r),
+            aHi = 100 - safe(aN.r);
+          const bLo = safe(bN.r),
+            bHi = 100 - safe(bN.r);
+          aN.x = clamp(aN.x, aLo, aHi);
+          aN.y = clamp(aN.y, aLo, aHi);
+          bN.x = clamp(bN.x, bLo, bHi);
+          bN.y = clamp(bN.y, bLo, bHi);
+          moved++;
+        }
+      }
+    }
+
+    // soft wall repulsion (keeps fill rectangular without edge hugging)
+    for (const n of nodes) {
+      const lo = safe(n.r),
+        hi = 100 - safe(n.r);
+      const kEdge = 0.12;
+
+      const dxL = n.x - lo;
+      const dxR = hi - n.x;
+      const dyT = n.y - lo;
+      const dyB = hi - n.y;
+
+      if (dxL < 4) n.x += (4 - dxL) * kEdge;
+      if (dxR < 4) n.x -= (4 - dxR) * kEdge;
+      if (dyT < 4) n.y += (4 - dyT) * kEdge;
+      if (dyB < 4) n.y -= (4 - dyB) * kEdge;
+
+      n.x = clamp(n.x, lo, hi);
+      n.y = clamp(n.y, lo, hi);
+    }
+
+    if (moved === 0) break;
+  }
+
+  const mentors = nodes
+    .filter((n) => n.type === "mentor")
+    .map((n) => ({
+      id: n.id,
+      name: `Mentor ${n.id}`,
+      image: n.img,
+      position: { top: `${n.y}%`, left: `${n.x}%` },
+    }));
+
+  const mentees = nodes
+    .filter((n) => n.type === "mentee")
+    .map((n) => ({
+      id: n.id,
+      name: `Mentee ${n.id}`,
+      image: n.img,
+      position: { top: `${n.y}%`, left: `${n.x}%` },
+    }));
+
+  return { mentors, mentees };
+}
+
+type Mentor = {
+  id: number;
+  name: string;
+  image: string;
+  position: { top: string; left: string };
+};
+type Mentee = {
+  id: number;
+  name: string;
+  image: string;
+  position: { top: string; left: string };
+};
+
+const FloatingAvatars: React.FC = () => {
+  // Tune these to change density
+  const MENTOR_COUNT = 25;
+  const MENTEE_COUNT = 260;
+
+  const { mentors, mentees } = useMemo(() => {
+    return buildLayout({
+      mentorCount: MENTOR_COUNT,
+      menteeCount: MENTEE_COUNT,
+      seed: 777, // change to reshuffle deterministically
+      margin: 3, // keep away from edges
+      mentorR: 3.6,
+      menteeR: 2.2,
+      padding: 0.4, // Ultra-minimal padding for maximum density
+      iterations: 180, // More iterations for convergence with ultra-high density
     });
-  }
+  }, []);
 
-  return builders;
-};
+  const HexagonAvatar: React.FC<{ mentor: Mentor; index: number }> = ({
+    mentor,
+    index,
+  }) => {
+    const size = 84; // Fixed size for all mentors
 
-const FloatingAvatar: React.FC<{ builder: Builder; delay: number }> = ({
-  builder,
-  delay,
-}) => {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const springConfig = { stiffness: 100, damping: 5 };
-  const x = useMotionValue(0);
-  const rotate = useSpring(
-    useTransform(x, [-100, 100], [-45, 45]),
-    springConfig
-  );
-  const translateX = useSpring(
-    useTransform(x, [-100, 100], [-50, 50]),
-    springConfig
-  );
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    const halfWidth = (event.target as HTMLElement).offsetWidth / 2;
-    x.set(event.nativeEvent.offsetX - halfWidth);
-  };
-
-  const size = 40 + Math.random() * 30;
-  const speed = 8 + Math.random() * 5;
-
-  return (
-    <motion.div
-      className="absolute flex items-center"
-      initial={{ x: "100vw", y: Math.random() * window.innerHeight }}
-      animate={{
-        x: "-200px",
-        y: Math.random() * window.innerHeight,
-      }}
-      transition={{
-        duration: speed,
-        delay: delay,
-        repeat: Infinity,
-        ease: "linear",
-      }}
-      onMouseEnter={() => setHoveredIndex(builder.id)}
-      onMouseLeave={() => setHoveredIndex(null)}
-    >
-      <AnimatePresence mode="popLayout">
-        {hoveredIndex === builder.id && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.6 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              transition: {
-                type: "spring",
-                stiffness: 260,
-                damping: 10,
-              },
-            }}
-            exit={{ opacity: 0, y: 20, scale: 0.6 }}
-            style={{
-              translateX: translateX,
-              rotate: rotate,
-              whiteSpace: "nowrap",
-            }}
-            className="absolute -top-32 -left-1/2 translate-x-1/2 flex text-xs flex-col items-start justify-center rounded-lg bg-white/90 backdrop-blur-sm z-50 shadow-xl px-4 py-3 border border-orange-200"
-          >
-            <div className="absolute inset-x-10 z-30 w-[20%] -bottom-px bg-gradient-to-r from-transparent via-orange-500 to-transparent h-px" />
-            <div className="font-bold text-gray-900 relative z-30 text-sm mb-1">
-              {builder.name}
-            </div>
-            <div className="text-orange-600 text-xs font-medium mb-1">
-              {builder.details.role}
-            </div>
-            <div className="text-gray-600 text-xs mb-1">
-              📍 {builder.details.location}
-            </div>
-            <div className="text-gray-600 text-xs mb-1">
-              ⏱️ {builder.details.experience}
-            </div>
-            <div className="text-gray-600 text-xs">
-              🛠️ {builder.details.skills.slice(0, 2).join(", ")}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+    return (
       <div
-        onMouseMove={handleMouseMove}
-        className={cn(
-          "relative transition-transform duration-300 hover:scale-110 hover:z-30",
-          builder.type === "builder" ? "rounded-full" : "rounded-lg rotate-45"
-        )}
-        style={{ width: size, height: size }}
+        className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
+        style={mentor.position}
+        aria-label={mentor.name}
+        title={mentor.name}
       >
-        <img
-          src={builder.image}
-          alt={builder.name}
-          className={cn(
-            "object-cover border-2 border-orange-300/50 shadow-lg",
-            builder.type === "builder"
-              ? "rounded-full w-full h-full"
-              : "rounded-lg w-full h-full -rotate-45"
-          )}
-          style={{ width: size, height: size }}
-        />
-        {builder.type === "mentor" && (
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
-            <span className="text-white text-xs font-bold">★</span>
+        <div className="relative" style={{ width: size, height: size }}>
+          <div
+            className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl"
+            style={{
+              transform: "rotate(30deg)",
+              clipPath:
+                "polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)",
+            }}
+          >
+            <img
+              src={mentor.image}
+              alt={mentor.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              style={{
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)",
+              }}
+            />
           </div>
-        )}
+        </div>
       </div>
-    </motion.div>
-  );
-};
-
-const Button = React.forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "outline" | "ghost";
-    size?: "default" | "sm" | "lg";
-  }
->(({ className, variant = "default", size = "default", ...props }, ref) => {
-  const baseStyles =
-    "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
-
-  const variants = {
-    default: "bg-orange-600 text-white shadow-sm hover:bg-orange-700",
-    outline:
-      "border border-orange-300 bg-white/80 backdrop-blur-sm hover:bg-orange-50 hover:text-orange-700",
-    ghost: "hover:bg-orange-100 hover:text-orange-700",
+    );
   };
 
-  const sizes = {
-    default: "h-10 px-4 py-2",
-    sm: "h-8 rounded-lg px-3 text-xs",
-    lg: "h-12 rounded-lg px-8 text-base",
-  };
+  const CircleAvatar: React.FC<{ mentee: Mentee; index: number }> = ({
+    mentee,
+    index,
+  }) => {
+    const size = 60; // Bigger size for all mentees
 
-  return (
-    <button
-      className={cn(baseStyles, variants[variant], sizes[size], className)}
-      ref={ref}
-      {...props}
-    />
-  );
-});
-
-Button.displayName = "Button";
-
-const BuildersSwarm: React.FC = () => {
-  const [builders] = useState<Builder[]>(generateBuilders());
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100"
-    >
-      {/* Floating Avatars */}
-      {builders.map((builder, index) => (
-        <FloatingAvatar
-          key={builder.id}
-          builder={builder}
-          delay={index * 0.5}
-        />
-      ))}
-
-      {/* Center Content */}
-      <div className="absolute inset-0 flex items-center justify-center z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="text-center px-8 py-12 rounded-3xl bg-white/20 backdrop-blur-lg border border-white/30 shadow-2xl max-w-2xl mx-auto"
+    return (
+      <div
+        className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
+        style={mentee.position}
+        aria-label={mentee.name}
+        title={mentee.name}
+      >
+        <div
+          className="rounded-full bg-gradient-to-br from-green-400 to-blue-500 p-[2px] shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+          style={{ width: size, height: size }}
         >
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-            className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight"
-          >
-            meet our{" "}
-            <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-              builders
-            </span>{" "}
-            &{" "}
-            <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-              mentors
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-            className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed"
-          >
-            Join a thriving community of passionate developers and experienced
-            mentors building the future together.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1.1 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Button size="lg" className="shadow-lg">
-              Join the Swarm
-            </Button>
-            <Button variant="outline" size="lg" className="shadow-lg">
-              Learn More
-            </Button>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1.3 }}
-            className="mt-8 flex items-center justify-center gap-6 text-sm text-gray-600"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow-sm"></div>
-              <span>Builders</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-lg bg-amber-500 border-2 border-white shadow-sm rotate-45 flex items-center justify-center">
-                <span className="text-white text-xs -rotate-45">★</span>
-              </div>
-              <span>Mentors</span>
-            </div>
-          </motion.div>
-        </motion.div>
+          <img
+            src={mentee.image}
+            alt={mentee.name}
+            className="w-full h-full rounded-full object-cover"
+            loading="lazy"
+          />
+        </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="relative w-full h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 overflow-hidden">
+      {/* Optional soft background */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-16 left-16 w-40 h-40 bg-blue-300 rounded-full mix-blend-multiply blur-xl" />
+        <div className="absolute top-36 right-16 w-56 h-56 bg-purple-300 rounded-full mix-blend-multiply blur-xl" />
+        <div className="absolute bottom-16 left-40 w-44 h-44 bg-pink-300 rounded-full mix-blend-multiply blur-xl" />
+      </div>
+
+      {/* Subtle grid */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-15">
+        <defs>
+          <pattern
+            id="grid"
+            width="50"
+            height="50"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 50 0 L 0 0 0 50"
+              fill="none"
+              stroke="#e5e7eb"
+              strokeWidth="1"
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+        <line
+          x1="20%"
+          y1="20%"
+          x2="60%"
+          y2="18%"
+          stroke="#cbd5e1"
+          strokeWidth="2"
+          strokeDasharray="5,5"
+        />
+        <line
+          x1="80%"
+          y1="50%"
+          x2="30%"
+          y2="60%"
+          stroke="#cbd5e1"
+          strokeWidth="2"
+          strokeDasharray="5,5"
+        />
+        <line
+          x1="25%"
+          y1="75%"
+          x2="70%"
+          y2="80%"
+          stroke="#cbd5e1"
+          strokeWidth="2"
+          strokeDasharray="5,5"
+        />
+      </svg>
+
+      {mentors.map((m, i) => (
+        <HexagonAvatar key={`mentor-${m.id}`} mentor={m} index={i} />
+      ))}
+      {mentees.map((m, i) => (
+        <CircleAvatar key={`mentee-${m.id}`} mentee={m} index={i} />
+      ))}
     </div>
   );
 };
 
-export default function Component() {
-  return <BuildersSwarm />;
-}
+export default FloatingAvatars;
