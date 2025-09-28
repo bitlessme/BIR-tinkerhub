@@ -94,14 +94,14 @@ export default function VerticalEventTimelineCarousel() {
   };
 
   return (
-    <div className="mx-auto px-4 py-12 max-w-7xl">
+    <div className="mx-auto px-4 py-12 max-w-7x bg-[#F4F1E6] rounded-2xl border border-black">
       <motion.h1
         className=" text-4xl lg:text-5xl text-charcoal leading-relaxed mb-2 text-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-       <span className="font-normal">ambitious builders</span>
+        <span className="font-normal">ambitious builders</span>
       </motion.h1>
 
       <motion.p
@@ -116,13 +116,13 @@ export default function VerticalEventTimelineCarousel() {
       <div className="relative">
         <button
           onClick={prevSlide}
-          className="absolute top-0 left-1/2 -translate-x-1/2 z-20 bg-background p-2 rounded-full shadow-md hover:bg-primary/10 transition-colors"
+          className="absolute top-0 left-1/2 -translate-x-1/2 z-20 bg-background p-2 rounded-full shadow-md hover:bg-primary/10 transition-colors border border-black"
         >
           <ChevronDown className="w-6 h-6 rotate-180" />
         </button>
         <button
           onClick={nextSlide}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 bg-background p-2 rounded-full shadow-md hover:bg-primary/10 transition-colors"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 bg-background p-2 rounded-full shadow-md hover:bg-primary/10 transition-colors border border-black"
         >
           <ChevronDown className="w-6 h-6" />
         </button>
@@ -138,7 +138,7 @@ export default function VerticalEventTimelineCarousel() {
             {events.map((item, index) => (
               <motion.div
                 key={index}
-                className="absolute h-64 mx-4"
+                className="absolute h-64 mx-4 "
                 variants={cardVariants}
                 initial="inactive"
                 animate={index === currentIndex ? "active" : "inactive"}
@@ -156,7 +156,7 @@ export default function VerticalEventTimelineCarousel() {
                   variants={cardVariants}
                   initial="inactive"
                   animate={index === currentIndex ? "active" : "inactive"}
-                  className={`absolute left-1/2 top-[-1rem] w-6 h-6 rounded-full transform -translate-x-1/2 z-10 ${
+                  className={`absolute left-1/2 top-[-1rem] w-6 h-6 rounded-full transform -translate-x-1/2 z-10 border border-black ${
                     index === currentIndex
                       ? "bg-primary"
                       : "border-2 border-primary bg-transparent"
@@ -172,7 +172,7 @@ export default function VerticalEventTimelineCarousel() {
                   className="w-full"
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
-                  <Card className="overflow-hidden border-primary/10 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Card className="overflow-hidden border border-black shadow-lg hover:shadow-xl transition-shadow duration-300">
                     <CardContent className="p-0">
                       <div
                         ref={index === 0 ? headerRef : null} // Measure first card's header
@@ -277,7 +277,7 @@ export default function VerticalEventTimelineCarousel() {
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
+              className={`w-3 h-3 rounded-full transition-colors border border-black ${
                 index === currentIndex ? "bg-primary" : "bg-primary/20"
               }`}
               aria-label={`Go to slide ${index + 1}`}

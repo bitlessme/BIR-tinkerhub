@@ -21,22 +21,25 @@ const ExpectSection = () => {
   ];
 
   return (
-    <section className="py-20 bg-background">
+    <section className="py-20 bg-[#FCF9E8]">
       <div className="container mx-auto px-6">
         <div className="max-w-6xl mx-auto">
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-serif italic text-charcoal mb-6">
-              What to <span className="underline decoration-accent decoration-2 underline-offset-8">expect</span>
+              What to{" "}
+              <span className="underline decoration-accent decoration-2 underline-offset-8">
+                expect
+              </span>
             </h2>
           </div>
 
           {/* Expectations Grid */}
           <div className="grid md:grid-cols-2 gap-8 mb-16">
             {expectations.map((expectation, index) => (
-              <div 
+              <div
                 key={index}
-                className="bg-warm-cream p-8 rounded-2xl shadow-soft hover:shadow-elegant transition-all duration-300 transform hover:-translate-y-1"
+                className="bg-[#F4F1E6] border border-black p-8 rounded-2xl shadow-soft hover:shadow-elegant transition-all duration-300 transform hover:-translate-y-1"
               >
                 <h3 className="text-xl font-medium text-charcoal mb-4">
                   {expectation.title}
@@ -50,14 +53,20 @@ const ExpectSection = () => {
 
           {/* CTA Section */}
           <div className="text-center">
-            <div className="bg-gradient-subtle p-12 rounded-3xl shadow-elegant">
+            <div className="bg-[#F4F1E6] p-12 rounded-3xl shadow-elegant border border-black">
               <h3 className="text-2xl lg:text-3xl font-serif text-charcoal mb-6">
-                Ready to <span className="italic">transform</span> your trajectory?
+                Ready to <span className="italic">transform</span> your
+                trajectory?
               </h3>
               <p className="text-soft-gray mb-8 max-w-2xl mx-auto">
-                Join a community of ambitious builders who are making their mark on the world.
+                Join a community of ambitious builders who are making their mark
+                on the world.
               </p>
-              <Button variant="elegant" size="lg" className="font-serif text-lg px-12">
+              <Button
+                variant="elegant"
+                size="lg"
+                className="font-serif text-lg px-12"
+              >
                 Apply Now
               </Button>
             </div>

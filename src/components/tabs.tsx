@@ -5,12 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import VerticalEventTimelineCarousel from "./timeline";
 
-
 interface Tab {
   value: string;
   title: string;
   content: React.ReactNode;
- 
 }
 
 interface Feature108Props {
@@ -39,11 +37,11 @@ const TimelineTabs = ({
   ],
 }: Feature108Props) => {
   return (
-    <section className="py-32">
+    <section className="pt-16 pb-32 bg-[#FCF9E8]">
       <div className="container mx-auto">
         <div className="flex flex-col items-center gap-4 text-center">
           <Badge variant="outline">{badge}</Badge>
-    
+
           <h2 className="text-4xl lg:text-5xl text-charcoal leading-relaxed">
             <span className="font-serif italic">{heading}</span>
           </h2>
@@ -61,12 +59,9 @@ const TimelineTabs = ({
               </TabsTrigger>
             ))}
           </TabsList>
-          <div className="mx-auto mt-8 max-w-screen-xl rounded-2xl bg-muted/70 p-6 lg:p-16">
+          <div className="mx-auto mt-8 max-w-screen-xl rounded-2xl bg-[#FCF9E8] p-6 lg:p-16">
             {tabs.map((tab) => (
-              <TabsContent
-                key={tab.value}
-                value={tab.value}
-              >
+              <TabsContent key={tab.value} value={tab.value}>
                 <VerticalEventTimelineCarousel />
               </TabsContent>
             ))}

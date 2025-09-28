@@ -29,6 +29,34 @@ type Mentor = {
 };
 type Mentee = Mentor;
 
+/* ================== Mentor Data ================== */
+const MENTOR_IMAGES = [
+  { name: "Abid", image: "/mentors/abid.png" },
+  { name: "Ajnas", image: "/mentors/ajnas.png" },
+  { name: "Ashwin", image: "/mentors/ashwin.png" },
+  { name: "Jofin", image: "/mentors/jofin.png" },
+  { name: "John", image: "/mentors/john.png" },
+  { name: "Rahul", image: "/mentors/rahul.png" },
+  { name: "Shahin", image: "/mentors/shahin.png" },
+  { name: "Shibin", image: "/mentors/shibin.png" },
+];
+
+/* ================== Mentee Data ================== */
+const MENTEE_IMAGES = [
+  { name: "Abi", image: "/mentee/abi.jpg" },
+  { name: "Adhil", image: "/mentee/adhil.png" },
+  { name: "Akash", image: "/mentee/akash.jpg" },
+  { name: "Aleena", image: "/mentee/aleena.jpg" },
+  { name: "Azif", image: "/mentee/azif.jpeg" },
+  { name: "Favas", image: "/mentee/favas.jpeg" },
+  { name: "Fazil", image: "/mentee/fazil.jpg" },
+  { name: "Gautham", image: "/mentee/gautham.jpg" },
+  { name: "Jacob", image: "/mentee/jacob.jpeg" },
+  { name: "Johan", image: "/mentee/johan.jpg" },
+  { name: "Shahil", image: "/mentee/shahil.jpeg" },
+  { name: "Unaiz", image: "/mentee/unaiz.jpeg" },
+];
+
 /* ================== Layout (your existing logic, trimmed) ================== */
 function buildLayoutPx(opts: {
   mentorCount: number;
@@ -56,9 +84,9 @@ function buildLayoutPx(opts: {
   const rnd = mulberry32(seed);
 
   // Use the maximum mentor size for grid spacing to accommodate all sizes
-  const maxMentorRpx = Math.max(mentorRpx, 50); // 50px is the radius for the largest mentor (100px diameter)
-  const stepX = 2 * maxMentorRpx;
-  const stepY = Math.sqrt(3) * maxMentorRpx;
+  const maxMentorRpx = Math.max(mentorRpx, 60); // 60px is the radius for the largest mentor (120px diameter)
+  const stepX = 1.8 * maxMentorRpx; // Reduced from 2.0 for tighter spacing
+  const stepY = Math.sqrt(3) * maxMentorRpx * 0.9; // Reduced by 10% for tighter vertical spacing
 
   const minX = marginPx,
     minY = marginPx;
@@ -158,40 +186,80 @@ function buildLayoutPx(opts: {
     }
   }
 
-  const mentors: Mentor[] = mentorsPlaced.map((n) => {
-    // Create size variations for hexagons
-    const sizes = [60, 70, 80, 90, 100];
-    const size = sizes[n.id % sizes.length];
-    const radius = size / 2;
+  // Function to assign images with spatial separation
+  const assignImagesWithSeparation = (
+    placed: P[],
+    images: typeof MENTOR_IMAGES,
+    minDistance: number = 150
+  ) => {
+    const result: Mentor[] = [];
+    const usedImages = new Map<string, { x: number; y: number }[]>();
 
-    return {
-      id: n.id,
-      name: `Mentor ${n.id}`,
-      image: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${radius}" cy="${radius}" r="${radius}" fill="%23${(
-        n.id * 7
-      )
-        .toString(16)
-        .padStart(6, "0")}"/></svg>`,
-      position: {
-        top: `${(n.y / height) * 100}%`,
-        left: `${(n.x / width) * 100}%`,
-      },
-    };
-  });
-  const mentees: Mentee[] = menteesPlaced.map((n, i) => ({
-    id: n.id,
-    name: `Mentee ${i + 1}`,
-    image: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><circle cx="35" cy="35" r="35" fill="%23${(
-      (n.id + 1000) *
-      5
-    )
-      .toString(16)
-      .padStart(6, "0")}"/></svg>`,
-    position: {
-      top: `${(n.y / height) * 100}%`,
-      left: `${(n.x / width) * 100}%`,
-    },
-  }));
+    // Initialize used images map
+    images.forEach((img) => {
+      usedImages.set(img.image, []);
+    });
+
+    placed.forEach((n) => {
+      const sizes = [80, 90, 100, 110, 120];
+      const size = sizes[n.id % sizes.length];
+
+      // Find the best image (farthest from other instances of the same image)
+      let bestImage = images[0];
+      let maxMinDistance = 0;
+
+      images.forEach((imgData) => {
+        const instances = usedImages.get(imgData.image) || [];
+        if (instances.length === 0) {
+          // If this image hasn't been used yet, it's a good candidate
+          if (maxMinDistance < Infinity) {
+            bestImage = imgData;
+            maxMinDistance = Infinity;
+          }
+        } else {
+          // Calculate minimum distance to existing instances of this image
+          const minDist = Math.min(
+            ...instances.map((instance) =>
+              Math.sqrt((n.x - instance.x) ** 2 + (n.y - instance.y) ** 2)
+            )
+          );
+
+          if (minDist > maxMinDistance) {
+            bestImage = imgData;
+            maxMinDistance = minDist;
+          }
+        }
+      });
+
+      // Add this position to the used images map
+      const instances = usedImages.get(bestImage.image) || [];
+      instances.push({ x: n.x, y: n.y });
+      usedImages.set(bestImage.image, instances);
+
+      result.push({
+        id: n.id,
+        name: bestImage.name,
+        image: bestImage.image,
+        position: {
+          top: `${(n.y / height) * 100}%`,
+          left: `${(n.x / width) * 100}%`,
+        },
+      });
+    });
+
+    return result;
+  };
+
+  const mentors: Mentor[] = assignImagesWithSeparation(
+    mentorsPlaced,
+    MENTOR_IMAGES,
+    120
+  );
+  const mentees: Mentee[] = assignImagesWithSeparation(
+    menteesPlaced,
+    MENTEE_IMAGES,
+    80
+  );
 
   return {
     mentors,
@@ -234,7 +302,8 @@ function useAvatarTile(
       img: CanvasImageSource,
       x: number,
       y: number,
-      size: number
+      size: number,
+      bgImg?: CanvasImageSource
     ) => {
       const r = size / 2;
       const angle = Math.PI / 6; // 30deg
@@ -248,7 +317,59 @@ function useAvatarTile(
       for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
       ctx.closePath();
       ctx.clip();
-      ctx.drawImage(img, x - r, y - r, size, size);
+
+      // Draw background first if provided
+      if (bgImg) {
+        // Apply grayscale filter with yellow tint to background
+        ctx.filter = "grayscale(100%) sepia(40%)";
+        ctx.drawImage(bgImg, x - r, y - r, size, size);
+        // Reset filter after background
+        ctx.filter = "none";
+      }
+
+      // Apply grayscale filter with yellow tint
+      ctx.filter = "grayscale(100%) sepia(40%)";
+
+      // Draw the main image with proper aspect ratio preservation
+      const imgAspect =
+        (img as HTMLImageElement).naturalWidth /
+        (img as HTMLImageElement).naturalHeight;
+      const targetAspect = 1; // Square aspect ratio for hexagon
+
+      let drawWidth = size;
+      let drawHeight = size;
+      let drawX = x - r;
+      let drawY = y - r;
+
+      if (imgAspect > targetAspect) {
+        // Image is wider than square, fit by height
+        drawHeight = size;
+        drawWidth = size * imgAspect;
+        drawX = x - drawWidth / 2;
+        drawY = y - r;
+      } else {
+        // Image is taller than square, fit by width
+        drawWidth = size;
+        drawHeight = size / imgAspect;
+        drawX = x - r;
+        drawY = y - drawHeight / 2;
+      }
+
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+      // Reset filter
+      ctx.filter = "none";
+
+      // Draw hexagon border
+      ctx.restore(); // End clipping
+      ctx.save();
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+      ctx.stroke();
       ctx.restore();
     };
 
@@ -264,7 +385,49 @@ function useAvatarTile(
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      ctx.drawImage(img, x - r, y - r, size, size);
+
+      // Apply grayscale filter with yellow tint
+      ctx.filter = "grayscale(100%) sepia(40%)";
+
+      // Draw the image with proper aspect ratio preservation
+      const imgAspect =
+        (img as HTMLImageElement).naturalWidth /
+        (img as HTMLImageElement).naturalHeight;
+      const targetAspect = 1; // Square aspect ratio for circle
+
+      let drawWidth = size;
+      let drawHeight = size;
+      let drawX = x - r;
+      let drawY = y - r;
+
+      if (imgAspect > targetAspect) {
+        // Image is wider than square, fit by height
+        drawHeight = size;
+        drawWidth = size * imgAspect;
+        drawX = x - drawWidth / 2;
+        drawY = y - r;
+      } else {
+        // Image is taller than square, fit by width
+        drawWidth = size;
+        drawHeight = size / imgAspect;
+        drawX = x - r;
+        drawY = y - drawHeight / 2;
+      }
+
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+      // Reset filter
+      ctx.filter = "none";
+
+      // Draw circle border
+      ctx.restore(); // End clipping
+      ctx.save();
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.stroke();
       ctx.restore();
     };
 
@@ -281,26 +444,37 @@ function useAvatarTile(
       })),
     ];
 
+    // Load mentor background image
+    const mentorBgImg = new Image();
+    mentorBgImg.src = "/mentor_bg.png";
+
     // load all images first
-    Promise.all(
-      all.map(
+    Promise.all([
+      new Promise<HTMLImageElement | null>((resolve) => {
+        mentorBgImg.onload = () => resolve(mentorBgImg);
+        mentorBgImg.onerror = () => resolve(null);
+      }),
+      ...all.map(
         (n) =>
           new Promise<{ n: typeof n; el: HTMLImageElement | null }>(
             (resolve) => {
               const img = new Image();
-              img.crossOrigin = "anonymous"; // needed for pravatar/same-origin-friendly sources
+              // Only set crossOrigin for external images, not local ones
+              if (n.image.startsWith("http") || n.image.startsWith("data:")) {
+                img.crossOrigin = "anonymous";
+              }
               img.src = n.image;
               img.onload = () => resolve({ n, el: img });
               img.onerror = () => resolve({ n, el: null }); // skip broken
             }
           )
-      )
-    ).then((loaded) => {
+      ),
+    ]).then(([bgImg, ...loaded]) => {
       loaded.forEach(({ n, el }) => {
         if (!el) return;
         const x = (parseFloat(n.position.left) / 100) * cw;
         const y = (parseFloat(n.position.top) / 100) * ch;
-        if (n.kind === "mentor") drawHexImage(el, x, y, n.size);
+        if (n.kind === "mentor") drawHexImage(el, x, y, n.size, bgImg);
         else drawCircleImage(el, x, y, n.size);
       });
       try {
@@ -349,9 +523,9 @@ function drawGrid(
 
 /* ================== Infinite Carousel Logic ================== */
 const ANIMATION_CONFIG = {
-  SMOOTH_TAU: 0.25,
-  MIN_COPIES: 3,
-  COPY_HEADROOM: 3,
+  SMOOTH_TAU: 0.15, // Reduced for more responsive animation
+  MIN_COPIES: 4, // Increased for better coverage
+  COPY_HEADROOM: 4, // Increased for seamless looping
 };
 
 const useResizeObserver = (
@@ -400,36 +574,50 @@ const useAnimationLoop = (
     if (!track) return;
 
     if (seqWidth > 0) {
-      offsetRef.current =
-        ((offsetRef.current % seqWidth) + seqWidth) % seqWidth;
+      // Normalize offset to prevent stutter on resize
+      offsetRef.current = offsetRef.current % seqWidth;
       track.style.transform = `translate3d(${-offsetRef.current}px, 0, 0)`;
     }
 
     const animate = (timestamp: number) => {
       if (lastTimestampRef.current === null) {
         lastTimestampRef.current = timestamp;
+        rafRef.current = requestAnimationFrame(animate);
+        return;
       }
 
       const deltaTime =
         Math.max(0, timestamp - lastTimestampRef.current) / 1000;
       lastTimestampRef.current = timestamp;
 
-      const target = pauseOnHover && isHovered ? 0 : targetVelocity;
+      // Skip frame if deltaTime is too small to prevent micro-stutters
+      if (deltaTime < 0.001) {
+        rafRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      const target = targetVelocity;
 
       const easingFactor =
         1 - Math.exp(-deltaTime / ANIMATION_CONFIG.SMOOTH_TAU);
       velocityRef.current += (target - velocityRef.current) * easingFactor;
 
       if (seqWidth > 0) {
-        let nextOffset = offsetRef.current + velocityRef.current * deltaTime;
-        // Ensure seamless looping by resetting offset when it exceeds sequence width
-        if (nextOffset >= seqWidth) {
-          nextOffset = nextOffset % seqWidth;
-        }
-        offsetRef.current = nextOffset;
+        offsetRef.current += velocityRef.current * deltaTime;
 
-        const translateX = -offsetRef.current;
-        track.style.transform = `translate3d(${translateX}px, 0, 0)`;
+        // Prevent offset from growing too large to avoid precision issues
+        if (offsetRef.current > seqWidth * 10) {
+          offsetRef.current = offsetRef.current % seqWidth;
+        }
+
+        // Use modulo for seamless looping without stutter
+        const normalizedOffset = offsetRef.current % seqWidth;
+        const translateX = -normalizedOffset;
+
+        // Use transform3d for hardware acceleration and round to prevent sub-pixel rendering issues
+        track.style.transform = `translate3d(${Math.round(
+          translateX
+        )}px, 0, 0)`;
       }
 
       rafRef.current = requestAnimationFrame(animate);
@@ -456,7 +644,6 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
 
   const [seqWidth, setSeqWidth] = useState(0);
   const [copyCount, setCopyCount] = useState(ANIMATION_CONFIG.MIN_COPIES);
-  const [isHovered, setIsHovered] = useState(false);
 
   // track size
   useEffect(() => {
@@ -473,10 +660,10 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
   }, []);
 
   // sizes & counts (tweak as needed)
-  const MENTOR_DIAM = 80;
-  const MENTEE_DIAM = 70;
-  const MENTOR_COUNT = 100; // Reduced for better performance
-  const MENTEE_COUNT = 500;
+  const MENTOR_DIAM = 140; // Increased size for larger hexagons
+  const MENTEE_DIAM = 100; // Increased size for larger circles
+  const MENTOR_COUNT = 60; // Reduced count for fewer rows
+  const MENTEE_COUNT = 300;
 
   // build a fresh layout for the current rect
   const { mentors, mentees } = useMemo(() => {
@@ -489,8 +676,8 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
       height: dims.h,
       mentorRpx: MENTOR_DIAM / 2,
       menteeRpx: MENTEE_DIAM / 2,
-      marginPx: 1,
-      jitterPx: 0.05,
+      marginPx: 20, // Increased margin for better spacing
+      jitterPx: 0.05, // Increased jitter for more natural distribution
       seed: 913,
     });
   }, [dims]);
@@ -533,15 +720,7 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
     [mentors, mentees]
   );
 
-  useAnimationLoop(trackRef, targetVelocity, seqWidth, isHovered, true);
-
-  const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
-  }, []);
+  useAnimationLoop(trackRef, targetVelocity, seqWidth, false, false);
 
   const renderAvatarTile = useCallback(
     (copyIndex: number) => (
@@ -555,7 +734,7 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          marginRight: "-80px", // Negative margin to create overlap
+          marginRight: "-140px", // Reduced negative margin to add padding between cards
         }}
         ref={copyIndex === 0 ? seqRef : undefined}
       />
@@ -574,9 +753,7 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="relative w-screen h-screen overflow-hidden"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className="relative w-screen h-[90vh] overflow-hidden bg-[#FCF9E8]"
     >
       {/* optional shared decorative background */}
       <div className="pointer-events-none absolute inset-0 opacity-10">
@@ -588,7 +765,11 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
       <div
         ref={trackRef}
         className="flex will-change-transform"
-        style={{ width: "max-content" }}
+        style={{
+          width: "max-content",
+          backfaceVisibility: "hidden",
+          perspective: "1000px",
+        }}
       >
         {avatarTiles}
       </div>
