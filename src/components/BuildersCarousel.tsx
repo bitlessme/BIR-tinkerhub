@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ALL_AVATAR_DATA, AvatarData } from "@/data/avatarData";
 
 /* ================== Utils ================== */
 function mulberry32(seed: number) {
@@ -30,32 +31,14 @@ type Mentor = {
 type Mentee = Mentor;
 
 /* ================== Mentor Data ================== */
-const MENTOR_IMAGES = [
-  { name: "Abid", image: "/mentors/abid.png" },
-  { name: "Ajnas", image: "/mentors/ajnas.png" },
-  { name: "Ashwin", image: "/mentors/ashwin.png" },
-  { name: "Jofin", image: "/mentors/jofin.png" },
-  { name: "John", image: "/mentors/john.png" },
-  { name: "Rahul", image: "/mentors/rahul.png" },
-  { name: "Shahin", image: "/mentors/shahin.png" },
-  { name: "Shibin", image: "/mentors/shibin.png" },
-];
+const MENTOR_IMAGES = ALL_AVATAR_DATA.filter(
+  (avatar) => avatar.type === "mentor"
+).map((avatar) => ({ name: avatar.name, image: avatar.image }));
 
 /* ================== Mentee Data ================== */
-const MENTEE_IMAGES = [
-  { name: "Abi", image: "/mentee/abi.jpg" },
-  { name: "Adhil", image: "/mentee/adhil.png" },
-  { name: "Akash", image: "/mentee/akash.jpg" },
-  { name: "Aleena", image: "/mentee/aleena.jpg" },
-  { name: "Azif", image: "/mentee/azif.jpeg" },
-  { name: "Favas", image: "/mentee/favas.jpeg" },
-  { name: "Fazil", image: "/mentee/fazil.jpg" },
-  { name: "Gautham", image: "/mentee/gautham.jpg" },
-  { name: "Jacob", image: "/mentee/jacob.jpeg" },
-  { name: "Johan", image: "/mentee/johan.jpg" },
-  { name: "Shahil", image: "/mentee/shahil.jpeg" },
-  { name: "Unaiz", image: "/mentee/unaiz.jpeg" },
-];
+const MENTEE_IMAGES = ALL_AVATAR_DATA.filter(
+  (avatar) => avatar.type === "builder"
+).map((avatar) => ({ name: avatar.name, image: avatar.image }));
 
 /* ================== Layout (your existing logic, trimmed) ================== */
 function buildLayoutPx(opts: {
@@ -596,6 +579,12 @@ const useAnimationLoop = (
         return;
       }
 
+      // Pause animation when hovering if pauseOnHover is true
+      if (pauseOnHover && isHovered) {
+        rafRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
       const target = targetVelocity;
 
       const easingFactor =
@@ -644,6 +633,9 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
 
   const [seqWidth, setSeqWidth] = useState(0);
   const [copyCount, setCopyCount] = useState(ANIMATION_CONFIG.MIN_COPIES);
+  const [hoveredAvatar, setHoveredAvatar] = useState<AvatarData | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
 
   // track size
   useEffect(() => {
@@ -720,13 +712,13 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
     [mentors, mentees]
   );
 
-  useAnimationLoop(trackRef, targetVelocity, seqWidth, false, false);
+  useAnimationLoop(trackRef, targetVelocity, seqWidth, isHovered, true);
 
   const renderAvatarTile = useCallback(
     (copyIndex: number) => (
       <div
         key={`copy-${copyIndex}`}
-        className="flex-shrink-0"
+        className="flex-shrink-0 relative"
         style={{
           width: `${dims.w}px`,
           height: `${dims.h}px`,
@@ -737,9 +729,88 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
           marginRight: "-140px", // Reduced negative margin to add padding between cards
         }}
         ref={copyIndex === 0 ? seqRef : undefined}
-      />
+      >
+        {/* Invisible hover areas for each avatar */}
+        {mentors.map((mentor, index) => {
+          const centerX = (parseFloat(mentor.position.left) / 100) * dims.w;
+          const centerY = (parseFloat(mentor.position.top) / 100) * dims.h;
+          const radius = MENTOR_DIAM / 2;
+
+          return (
+            <div
+              key={`mentor-hover-${copyIndex}-${index}`}
+              className="absolute cursor-pointer"
+              style={{
+                left: centerX - radius,
+                top: centerY - radius,
+                width: MENTOR_DIAM,
+                height: MENTOR_DIAM,
+                borderRadius: "50%",
+                zIndex: 10,
+              }}
+              onMouseEnter={() => {
+                const avatarData = ALL_AVATAR_DATA.find(
+                  (avatar) =>
+                    avatar.name.toLowerCase() === mentor.name.toLowerCase() &&
+                    avatar.type === "mentor"
+                );
+                if (avatarData) {
+                  setHoveredAvatar(avatarData);
+                  setIsHovered(true);
+                }
+              }}
+              onMouseLeave={() => {
+                setHoveredAvatar(null);
+                setIsHovered(false);
+              }}
+              onMouseMove={(e) => {
+                setTooltipPosition({ x: e.clientX, y: e.clientY });
+              }}
+            />
+          );
+        })}
+
+        {mentees.map((mentee, index) => {
+          const centerX = (parseFloat(mentee.position.left) / 100) * dims.w;
+          const centerY = (parseFloat(mentee.position.top) / 100) * dims.h;
+          const radius = MENTEE_DIAM / 2;
+
+          return (
+            <div
+              key={`mentee-hover-${copyIndex}-${index}`}
+              className="absolute cursor-pointer"
+              style={{
+                left: centerX - radius,
+                top: centerY - radius,
+                width: MENTEE_DIAM,
+                height: MENTEE_DIAM,
+                borderRadius: "50%",
+                zIndex: 10,
+              }}
+              onMouseEnter={() => {
+                const avatarData = ALL_AVATAR_DATA.find(
+                  (avatar) =>
+                    avatar.name.toLowerCase() === mentee.name.toLowerCase() &&
+                    avatar.type === "builder"
+                );
+                if (avatarData) {
+                  setHoveredAvatar(avatarData);
+                  setIsHovered(true);
+                }
+              }}
+              onMouseLeave={() => {
+                setHoveredAvatar(null);
+                setIsHovered(false);
+              }}
+              onMouseMove={(e) => {
+                setTooltipPosition({ x: e.clientX, y: e.clientY });
+              }}
+            />
+          );
+        })}
+      </div>
     ),
-    [dims.w, dims.h, tileUrl]
+    [dims.w, dims.h, tileUrl, mentors, mentees, MENTOR_DIAM, MENTEE_DIAM]
   );
 
   const avatarTiles = useMemo(
@@ -773,6 +844,40 @@ const FloatingAvatarsCanvasMarquee: React.FC = () => {
       >
         {avatarTiles}
       </div>
+
+      {/* Tooltip */}
+      {hoveredAvatar && (
+        <div
+          className="fixed z-50 bg-[#FCF9E8] border-2 border-black rounded-lg shadow-lg p-4 max-w-xs pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x + 10}px`,
+            top: `${tooltipPosition.y - 10}px`,
+            transform: "translateY(-100%)",
+            fontFamily: "ClashDisplay, sans-serif",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <img
+              src={hoveredAvatar.image}
+              alt={hoveredAvatar.name}
+              className="w-12 h-12 rounded-full object-cover border border-black"
+              style={{ filter: "grayscale(100%) sepia(40%)" }}
+            />
+            <div>
+              <div className="font-semibold text-sm text-black">
+                {hoveredAvatar.type === "mentor" ? "Mentor" : "Builder"}
+              </div>
+              <div className="font-bold text-lg text-black">
+                {hoveredAvatar.name}
+              </div>
+              <div className="text-sm text-gray-700">{hoveredAvatar.batch}</div>
+              <div className="text-xs text-gray-600 mt-1">
+                {hoveredAvatar.project}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
